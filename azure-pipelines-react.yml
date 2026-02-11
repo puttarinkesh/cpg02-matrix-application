@@ -1,0 +1,75 @@
+# Node.js with React
+# Build a Node.js project that uses React.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- react-application-branch
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    displayName: Build stage
+
+    jobs:
+    - job: BuildReactApp
+      displayName: Building React Application
+      steps:
+      - task: NodeTool@0
+        displayName: 'Install Node.js'
+        inputs:
+          versionSource: 'spec'
+          versionSpec: '10.x'
+          checkLatest: true
+        
+
+      - script: |
+          npm install
+          npm run build
+        workingDirectory: '$(Build.SourcesDirectory)'
+        displayName: 'npm install and build'
+
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: 'build' #'$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
+
+
+  - stage: Deploy_React_Web_App_Stage
+    dependsOn: Build
+    condition: succeeded()
+    pool:
+      vmImage: ubuntu-latest  
+    jobs:
+    - deployment: deploytowebappdev
+      displayName: "React Web Application Release"
+      environment: "cpg"
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            # - task: AzureRmWebAppDeployment@5
+            #   inputs:
+            #     ConnectionType: 'AzureRM'
+            #     azureSubscription: 'Visual Studio Enterprise Subscription – MPN (0f87b7f3-b8ff-4c25-b09a-901f6869202e)'
+            #     appType: 'webApp'
+            #     WebAppName: 'cpg02'
+            #     packageForLinux: '$(Pipeline.Workspace)/drop'
+
+            # - task: AzureWebApp@1
+            #   inputs:
+            #     azureSubscription: 'Visual Studio Enterprise Subscription – MPN(0f87b7f3-b8ff-4c25-b09a-901f6869202e)'
+            #     appType: 'webApp'
+            #     appName: 'dev-temp-app-svc-01'
+            #     package: '$(Build.StagingDirectory)/drop'
+            #     deploymentMethod: 'auto'
+            - task: AzureRmWebAppDeployment@5
+              inputs:
+                ConnectionType: 'AzureRM'
+                azureSubscription: 'Visual Studio Enterprise Subscription – MPN (0f87b7f3-b8ff-4c25-b09a-901f6869202e)'
+                appType: 'webApp'
+                WebAppName: 'dev-cpg02-demo-app'
+                packageForLinux: '$(Pipeline.Workspace)/drop'
